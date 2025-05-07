@@ -92,7 +92,7 @@ export default function AdminPage() {
     const token = localStorage.getItem('token');
     if (!token) return;
     if (!window.confirm('Are you sure you want to delete this project?')) return;
-    const res = await fetch(`/api/project-by-id?id=${id}`, {
+    const res = await fetch(`/api/project/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

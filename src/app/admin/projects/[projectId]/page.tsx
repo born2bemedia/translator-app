@@ -48,7 +48,7 @@ export default function ProjectTranslationPage() {
   const fetchBaseJson = async (token: string) => {
     setLoading(true);
     setError(null);
-    const res = await fetch(`/api/project-by-id?id=${projectId}`, {
+    const res = await fetch(`/api/project/${projectId}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     if (!res.ok) {

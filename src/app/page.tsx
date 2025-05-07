@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface TranslationData {
   [key: string]: any;
@@ -43,11 +44,16 @@ const setCachedLanguages = (languages: string[]) => {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [translations, setTranslations] = useState<TranslationData>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
   const [availableLanguages, setAvailableLanguages] = useState<string[]>(getCachedLanguages());
+
+  useEffect(() => {
+    router.replace('/login');
+  }, [router]);
 
   useEffect(() => {
     fetchAvailableLanguages();

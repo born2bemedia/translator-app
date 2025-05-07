@@ -48,7 +48,7 @@ export default function ProjectTranslationPage() {
   const fetchBaseJson = async (token: string) => {
     setLoading(true);
     setError(null);
-    const res = await fetch(`/api/projects/${projectId}`, {
+    const res = await fetch(`/api/project-by-id?id=${projectId}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     if (!res.ok) {
@@ -64,7 +64,7 @@ export default function ProjectTranslationPage() {
   const fetchTranslations = async (token: string, language: string) => {
     setLoading(true);
     setError(null);
-    const res = await fetch(`/api/projects/${projectId}/translations?language=${language}`, {
+    const res = await fetch(`/api/project-translations?id=${projectId}&language=${language}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     if (res.status === 404) {
@@ -110,7 +110,7 @@ export default function ProjectTranslationPage() {
     // Build full JSON for saving
     const fullJson = buildFullTranslation(baseJson, newTranslations);
     // Update in DB
-    await fetch(`/api/projects/${projectId}/translations`, {
+    await fetch(`/api/project-translations?id=${projectId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -121,7 +121,6 @@ export default function ProjectTranslationPage() {
     // Mark as saved (green)
     const pathKey = path.join('.');
     setSavedPaths(prev => new Set(prev).add(pathKey));
-    // Remove green after 2 seconds
     if (saveTimeouts.current[pathKey]) clearTimeout(saveTimeouts.current[pathKey]);
     saveTimeouts.current[pathKey] = setTimeout(() => {
       setSavedPaths(prev => {

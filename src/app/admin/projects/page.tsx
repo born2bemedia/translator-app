@@ -9,7 +9,7 @@ interface Project {
   updatedAt: string;
 }
 
-export default function AdminPage() {
+export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [name, setName] = useState('');
   const [baseJson, setBaseJson] = useState<any>(null);
@@ -20,9 +20,9 @@ export default function AdminPage() {
     const token = localStorage.getItem('token');
     if (!token) {
       router.replace('/login');
-    } else {
-      fetchProjects(token);
+      return;
     }
+    fetchProjects(token);
   }, [router]);
 
   const fetchProjects = async (token: string) => {
@@ -82,12 +82,6 @@ export default function AdminPage() {
     fetchProjects(token);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.replace('/login');
-  };
-
   const handleDeleteProject = async (id: string) => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -101,6 +95,12 @@ export default function AdminPage() {
     if (res.ok) {
       fetchProjects(token);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.replace('/login');
   };
 
   return (

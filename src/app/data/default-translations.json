@@ -1,0 +1,17 @@
+{
+  "welcome": {
+    "title": "Welcome to our application",
+    "description": "This is a sample translation file"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit"
+  },
+  "navigation": {
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact"
+  }
+} 

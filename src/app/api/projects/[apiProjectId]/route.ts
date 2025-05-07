@@ -3,11 +3,11 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request,
-  { params }: { params: { projectId: string } }
+  { params }: { params: { apiProjectId: string } }
 ) {
   try {
     const project = await prisma.translationProject.findUnique({
-      where: { id: params.projectId },
+      where: { id: params.apiProjectId },
     });
     if (!project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -20,11 +20,11 @@ export async function GET(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { projectId: string } }
+  { params }: { params: { apiProjectId: string } }
 ) {
   try {
-    await prisma.translation.deleteMany({ where: { projectId: params.projectId } });
-    await prisma.translationProject.delete({ where: { id: params.projectId } });
+    await prisma.translation.deleteMany({ where: { projectId: params.apiProjectId } });
+    await prisma.translationProject.delete({ where: { id: params.apiProjectId } });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });

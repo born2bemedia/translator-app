@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: Request, { params }: { params: { projectId: string } }) {
+export async function GET(request: Request, { params }: { params: { apiProjectId: string } }) {
   try {
     const { searchParams } = new URL(request.url);
     const language = searchParams.get('language');
@@ -11,7 +11,7 @@ export async function GET(request: Request, { params }: { params: { projectId: s
     const translation = await prisma.translation.findUnique({
       where: {
         projectId_language: {
-          projectId: params.projectId,
+          projectId: params.apiProjectId,
           language,
         },
       },
@@ -25,7 +25,7 @@ export async function GET(request: Request, { params }: { params: { projectId: s
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { projectId: string } }) {
+export async function PUT(request: Request, { params }: { params: { apiProjectId: string } }) {
   try {
     const { language, json } = await request.json();
     if (!language || !json) {
@@ -34,13 +34,13 @@ export async function PUT(request: Request, { params }: { params: { projectId: s
     const translation = await prisma.translation.upsert({
       where: {
         projectId_language: {
-          projectId: params.projectId,
+          projectId: params.apiProjectId,
           language,
         },
       },
       update: { json },
       create: {
-        projectId: params.projectId,
+        projectId: params.apiProjectId,
         language,
         json,
       },

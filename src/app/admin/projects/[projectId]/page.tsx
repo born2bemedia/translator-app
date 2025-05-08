@@ -157,6 +157,15 @@ export default function ProjectTranslationPage() {
     const newBaseJson = JSON.parse(JSON.stringify(baseJson));
     deleteByPath(newBaseJson, path);
     setBaseJson(newBaseJson);
+    // Зберігаємо baseJson у базі даних
+    await fetch(`/api/project/${projectId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ baseJson: newBaseJson }),
+    });
     // Видаляємо з поточної мови
     const newTranslations = JSON.parse(JSON.stringify(translations));
     deleteByPath(newTranslations, path);
@@ -259,11 +268,17 @@ export default function ProjectTranslationPage() {
     if (!token) return;
 
     const pathParts = newTranslation.path.split('.');
-    let current = baseJson;
+    // Глибока копія baseJson
+    const newBaseJson = JSON.parse(JSON.stringify(baseJson));
+    let current = newBaseJson;
     let currentPath: string[] = [];
 
-    // Create nested structure if it doesn't exist
+    // Create nested structure if it doesn't exist, but check for conflicts
     for (let i = 0; i < pathParts.length - 1; i++) {
+      if (typeof current[pathParts[i]] === 'string') {
+        setError(`Cannot add nested key under a string value at '${[...currentPath, pathParts[i]].join('.')}'. Please resolve this conflict first.`);
+        return;
+      }
       if (!current[pathParts[i]]) {
         current[pathParts[i]] = {};
       }
@@ -273,11 +288,21 @@ export default function ProjectTranslationPage() {
 
     // Add the new translation
     current[pathParts[pathParts.length - 1]] = newTranslation.value;
-    
-    // Update base JSON
-    setBaseJson({ ...baseJson });
-    
-    // Update translations for all languages
+
+    // Оновлюємо baseJson у стані
+    setBaseJson(newBaseJson);
+
+    // Зберігаємо baseJson у базі даних
+    await fetch(`/api/project/${projectId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ baseJson: newBaseJson }),
+    });
+
+    // Оновлюємо всі мови в базі даних
     for (const lang of SUPPORTED_LANGUAGES) {
       const res = await fetch(`/api/project-translations?id=${projectId}`, {
         method: 'PUT',
@@ -285,12 +310,11 @@ export default function ProjectTranslationPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ 
-          language: lang.code, 
-          json: buildFullTranslation(baseJson, lang.code === 'en' ? {} : translations) 
+        body: JSON.stringify({
+          language: lang.code,
+          json: buildFullTranslation(newBaseJson, lang.code === 'en' ? {} : translations)
         }),
       });
-      
       if (!res.ok) {
         setError(`Failed to update ${lang.name} translation`);
         return;
@@ -299,7 +323,7 @@ export default function ProjectTranslationPage() {
 
     // Clear the form
     setNewTranslation({ path: '', value: '' });
-    
+
     // Refresh translations
     fetchTranslations(token, selectedLanguage);
   };

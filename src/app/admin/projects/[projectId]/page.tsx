@@ -11,6 +11,11 @@ interface NewTranslation {
   value: string;
 }
 
+interface AISuggestion {
+  path: string[];
+  text: string;
+}
+
 const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'de', name: 'German' },
@@ -31,6 +36,8 @@ export default function ProjectTranslationPage() {
   const [error, setError] = useState<string | null>(null);
   const [savedPaths, setSavedPaths] = useState<Set<string>>(new Set());
   const [newTranslation, setNewTranslation] = useState<NewTranslation>({ path: '', value: '' });
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const saveTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   useEffect(() => {
@@ -192,6 +199,40 @@ export default function ProjectTranslationPage() {
     fetchTranslations(token, selectedLanguage);
   };
 
+  const handleAITranslation = async (path: string[], originalText: string) => {
+    if (selectedLanguage === 'en') return;
+    
+    setIsAiLoading(true);
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: originalText,
+          targetLanguage: selectedLanguage,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI translation');
+      }
+
+      const data = await response.json();
+      setAiSuggestions(prev => [...prev, { path, text: data.translation }]);
+    } catch (error) {
+      setError('Failed to get AI translation');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  const handleSaveAISuggestion = (path: string[], text: string) => {
+    handleTranslationChange(path, text);
+    setAiSuggestions(prev => prev.filter(s => s.path.join('.') !== path.join('.')));
+  };
+
   const renderTranslationFields = (data: any, currentPath: string[] = []) => {
     return Object.entries(data).map(([key, value]) => {
       const newPath = [...currentPath, key];
@@ -199,6 +240,8 @@ export default function ProjectTranslationPage() {
       const isUntranslated = selectedLanguage !== 'en' && (getTranslationValue(translations, newPath) === undefined || getTranslationValue(translations, newPath) === '' || getTranslationValue(translations, newPath) === value);
       const pathKey = newPath.join('.');
       const isSaved = savedPaths.has(pathKey);
+      const aiSuggestion = aiSuggestions.find(s => s.path.join('.') === pathKey);
+
       if (typeof value === 'object' && value !== null) {
         return (
           <div key={key} className="ml-4 border-l-2 border-gray-200 pl-4 my-4">
@@ -206,7 +249,7 @@ export default function ProjectTranslationPage() {
               <h3 className="text-lg font-semibold text-gray-700 bg-gray-50 p-2 rounded-md flex-1">{key}</h3>
               <button
                 onClick={() => handleDeleteTranslation(newPath)}
-                className="ml-2 h-10 text-xs text-red-700 roundedflex items-center justify-center"
+                className="ml-2 h-10 px-3 py-2 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 flex items-center justify-center"
                 title="Видалити об'єкт"
                 aria-label="Видалити"
               >
@@ -217,29 +260,56 @@ export default function ProjectTranslationPage() {
           </div>
         );
       }
+
       return (
-        <div key={key} className="mb-4 bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-end">
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1"
+        <div key={key} className="mb-4 bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center mb-2">
+            <label className="block text-sm font-medium flex-1"
               style={{ color: isUntranslated ? '#dc2626' : isSaved ? '#16a34a' : undefined }}
             >
               {newPath.join('.')}
             </label>
-            <input
-              type="text"
-              value={translationValue as string}
-              onChange={(e) => handleTranslationChange(newPath, e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 placeholder-gray-400 ${isUntranslated ? 'border-red-500' : isSaved ? 'border-green-500' : 'border-gray-300'}`}
-            />
+            <div className="flex gap-2">
+              {selectedLanguage !== 'en' && (
+                <button
+                  onClick={() => handleAITranslation(newPath, value as string)}
+                  disabled={isAiLoading}
+                  className="h-10 px-3 py-2 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 flex items-center justify-center"
+                  title="AI Translation"
+                >
+                  {isAiLoading ? 'Loading...' : 'AI'}
+                </button>
+              )}
+              <button
+                onClick={() => handleDeleteTranslation(newPath)}
+                className="h-10 px-3 py-2 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 flex items-center justify-center"
+                title="Видалити строку"
+                aria-label="Видалити"
+              >
+                <TrashBinIcon />
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => handleDeleteTranslation(newPath)}
-            className="ml-2 h-10 text-xs text-red-700 roundedflex items-center justify-center"
-            title="Видалити строку"
-            aria-label="Видалити"
-          >
-            <TrashBinIcon />
-          </button>
+          <input
+            type="text"
+            value={translationValue as string}
+            onChange={(e) => handleTranslationChange(newPath, e.target.value)}
+            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 placeholder-gray-400 ${isUntranslated ? 'border-red-500' : isSaved ? 'border-green-500' : 'border-gray-300'}`}
+          />
+          {aiSuggestion && (
+            <div className="mt-2 p-2 bg-blue-50 rounded-md">
+              <div className="text-sm text-gray-600 mb-1">AI Suggestion:</div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 text-sm">{aiSuggestion.text}</div>
+                <button
+                  onClick={() => handleSaveAISuggestion(newPath, aiSuggestion.text)}
+                  className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       );
     });
@@ -335,6 +405,36 @@ export default function ProjectTranslationPage() {
     </svg>
   );
 
+  // Рекурсивно рахує всі ключі-рядки у baseJson
+  function countStringKeys(obj: any): number {
+    if (typeof obj !== 'object' || obj === null) return 0;
+    let count = 0;
+    for (const key in obj) {
+      if (typeof obj[key] === 'object' && obj[key] !== null) {
+        count += countStringKeys(obj[key]);
+      } else {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  // Рекурсивно рахує перекладені ключі для поточної мови
+  function countTranslatedKeys(base: any, translation: any): number {
+    if (typeof base !== 'object' || base === null) return 0;
+    let count = 0;
+    for (const key in base) {
+      if (typeof base[key] === 'object' && base[key] !== null) {
+        count += countTranslatedKeys(base[key], translation?.[key]);
+      } else {
+        if (translation?.[key] && translation[key] !== '' && translation[key] !== base[key]) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -422,6 +522,28 @@ export default function ProjectTranslationPage() {
           </div>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-6">
+          {/* Прогрес перекладу */}
+          {selectedLanguage !== 'en' && (
+            (() => {
+              const total = countStringKeys(baseJson);
+              const translated = countTranslatedKeys(baseJson, translations);
+              const percent = total > 0 ? Math.round((translated / total) * 100) : 0;
+              return (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700">Translation Progress</span>
+                    <span className="text-sm text-gray-500">{translated} / {total} ({percent}%)</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-blue-500 h-3 rounded-full transition-all"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()
+          )}
           <div className="space-y-4">
             {renderTranslationFields(baseJson)}
           </div>

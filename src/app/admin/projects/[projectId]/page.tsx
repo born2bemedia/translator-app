@@ -204,6 +204,7 @@ export default function ProjectTranslationPage() {
     
     setIsAiLoading(true);
     try {
+      console.log('[AI TRANSLATE] Request:', { text: originalText, targetLanguage: selectedLanguage, path });
       const response = await fetch('/api/translate', {
         method: 'POST',
         headers: {
@@ -216,12 +217,15 @@ export default function ProjectTranslationPage() {
       });
 
       if (!response.ok) {
+        console.error('[AI TRANSLATE] Response not ok:', response.status, response.statusText);
         throw new Error('Failed to get AI translation');
       }
 
       const data = await response.json();
+      console.log('[AI TRANSLATE] AI response:', data);
       setAiSuggestions(prev => [...prev, { path, text: data.translation }]);
     } catch (error) {
+      console.error('[AI TRANSLATE] Error:', error);
       setError('Failed to get AI translation');
     } finally {
       setIsAiLoading(false);

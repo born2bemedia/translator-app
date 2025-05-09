@@ -18,6 +18,7 @@ const SUPPORTED_LANGUAGES: Language[] = [
   { code: 'it', name: 'Italian' },
   { code: 'fr', name: 'French' },
   { code: 'es', name: 'Spanish' },
+  { code: 'pl', name: 'Polish' },
 ];
 
 // Helper functions for localStorage

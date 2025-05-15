@@ -9,11 +9,22 @@ interface Project {
   updatedAt: string;
 }
 
+interface DeleteConfirmation {
+  isOpen: boolean;
+  projectId: string | null;
+  projectName: string;
+}
+
 export default function AdminPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [name, setName] = useState('');
   const [baseJson, setBaseJson] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmation>({
+    isOpen: false,
+    projectId: null,
+    projectName: ''
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -91,7 +102,6 @@ export default function AdminPage() {
   const handleDeleteProject = async (id: string) => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    if (!window.confirm('Are you sure you want to delete this project?')) return;
     const res = await fetch(`/api/project/${id}`, {
       method: 'DELETE',
       headers: {
@@ -100,7 +110,20 @@ export default function AdminPage() {
     });
     if (res.ok) {
       fetchProjects(token);
+      setDeleteConfirmation({ isOpen: false, projectId: null, projectName: '' });
     }
+  };
+
+  const handleDeleteClick = (project: Project) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      projectId: project.id,
+      projectName: project.name
+    });
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmation({ isOpen: false, projectId: null, projectName: '' });
   };
 
   return (
@@ -145,7 +168,7 @@ export default function AdminPage() {
               </button>
               <button
                 className="bg-red-500 text-white px-3 py-1 rounded"
-                onClick={() => handleDeleteProject(project.id)}
+                onClick={() => handleDeleteClick(project)}
               >
                 Delete
               </button>
@@ -153,6 +176,32 @@ export default function AdminPage() {
           </li>
         ))}
       </ul>
+      {/* Confirmation Dialog */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Project Deletion</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete the project <span className="font-semibold">{deleteConfirmation.projectName}</span>?
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={handleCancelDelete}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteConfirmation.projectId && handleDeleteProject(deleteConfirmation.projectId)}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Delete Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

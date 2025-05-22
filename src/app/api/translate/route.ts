@@ -22,6 +22,7 @@ export async function POST(request: Request) {
       { code: "fr", name: "French" },
       { code: "es", name: "Spanish" },
       { code: "pl", name: "Polish" },
+      { code: "sk", name: "Slovak" },
     ];
 
     const language = languages.find((lang) => lang.code === targetLanguage)?.name;

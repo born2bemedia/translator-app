@@ -1,6 +1,6 @@
-'use client';
-import { useEffect, useState, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+"use client";
+import { useEffect, useState, useRef } from "react";
+import { useRouter, useParams } from "next/navigation";
 
 interface TranslationData {
   [key: string]: any;
@@ -22,11 +22,13 @@ interface DeleteConfirmation {
 }
 
 const SUPPORTED_LANGUAGES = [
-  { code: 'en', name: 'English' },
-  { code: 'de', name: 'German' },
-  { code: 'it', name: 'Italian' },
-  { code: 'fr', name: 'French' },
-  { code: 'es', name: 'Spanish' },
+  { code: "en", name: "English" },
+  { code: "de", name: "German" },
+  { code: "it", name: "Italian" },
+  { code: "fr", name: "French" },
+  { code: "es", name: "Spanish" },
+  { code: "pl", name: "Polish" },
+  { code: "sk", name: "Slovak" },
 ];
 
 export default function ProjectTranslationPage() {
@@ -36,20 +38,24 @@ export default function ProjectTranslationPage() {
 
   const [baseJson, setBaseJson] = useState<TranslationData>({});
   const [translations, setTranslations] = useState<TranslationData>({});
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savedPaths, setSavedPaths] = useState<Set<string>>(new Set());
-  const [newTranslation, setNewTranslation] = useState<NewTranslation>({ path: '', value: '' });
+  const [newTranslation, setNewTranslation] = useState<NewTranslation>({
+    path: "",
+    value: "",
+  });
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [aiLoadingPaths, setAiLoadingPaths] = useState<string[]>([]);
-  const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmation>({ isOpen: false, path: [] });
+  const [deleteConfirmation, setDeleteConfirmation] =
+    useState<DeleteConfirmation>({ isOpen: false, path: [] });
   const saveTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      router.replace('/login');
+      router.replace("/login");
       return;
     }
     fetchBaseJson(token);
@@ -58,7 +64,7 @@ export default function ProjectTranslationPage() {
   }, [projectId]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) return;
     fetchTranslations(token, selectedLanguage);
     // eslint-disable-next-line
@@ -76,10 +82,10 @@ export default function ProjectTranslationPage() {
     setLoading(true);
     setError(null);
     const res = await fetch(`/api/project/${projectId}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
-      setError('Failed to load project');
+      setError("Failed to load project");
       setLoading(false);
       return;
     }
@@ -91,16 +97,19 @@ export default function ProjectTranslationPage() {
   const fetchTranslations = async (token: string, language: string) => {
     setLoading(true);
     setError(null);
-    const res = await fetch(`/api/project-translations?id=${projectId}&language=${language}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const res = await fetch(
+      `/api/project-translations?id=${projectId}&language=${language}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     if (res.status === 404) {
       setTranslations({});
       setLoading(false);
       return;
     }
     if (!res.ok) {
-      setError('Failed to load translations');
+      setError("Failed to load translations");
       setLoading(false);
       return;
     }
@@ -110,20 +119,21 @@ export default function ProjectTranslationPage() {
   };
 
   function buildFullTranslation(base: any, translation: any): any {
-    if (typeof base !== 'object' || base === null) return translation ?? base;
+    if (typeof base !== "object" || base === null) return translation ?? base;
     const result: any = Array.isArray(base) ? [] : {};
     for (const key in base) {
-      if (typeof base[key] === 'object' && base[key] !== null) {
+      if (typeof base[key] === "object" && base[key] !== null) {
         result[key] = buildFullTranslation(base[key], translation?.[key]);
       } else {
-        result[key] = translation?.[key] !== undefined ? translation[key] : base[key];
+        result[key] =
+          translation?.[key] !== undefined ? translation[key] : base[key];
       }
     }
     return result;
   }
 
   const handleTranslationChange = async (path: string[], value: string) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) return;
     // Update local state
     const newTranslations = { ...translations };
@@ -138,19 +148,20 @@ export default function ProjectTranslationPage() {
     const fullJson = buildFullTranslation(baseJson, newTranslations);
     // Update in DB
     await fetch(`/api/project-translations?id=${projectId}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ language: selectedLanguage, json: fullJson }),
     });
     // Mark as saved (green)
-    const pathKey = path.join('.');
-    setSavedPaths(prev => new Set(prev).add(pathKey));
-    if (saveTimeouts.current[pathKey]) clearTimeout(saveTimeouts.current[pathKey]);
+    const pathKey = path.join(".");
+    setSavedPaths((prev) => new Set(prev).add(pathKey));
+    if (saveTimeouts.current[pathKey])
+      clearTimeout(saveTimeouts.current[pathKey]);
     saveTimeouts.current[pathKey] = setTimeout(() => {
-      setSavedPaths(prev => {
+      setSavedPaths((prev) => {
         const newSet = new Set(prev);
         newSet.delete(pathKey);
         return newSet;
@@ -159,20 +170,23 @@ export default function ProjectTranslationPage() {
   };
 
   function getTranslationValue(obj: any, path: string[]) {
-    return path.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), obj);
+    return path.reduce(
+      (acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined),
+      obj
+    );
   }
 
   function deleteByPath(obj: any, path: string[]) {
     if (!obj || path.length === 0) return;
     const lastKey = path[path.length - 1];
     const parent = path.slice(0, -1).reduce((acc, key) => acc && acc[key], obj);
-    if (parent && typeof parent === 'object') {
+    if (parent && typeof parent === "object") {
       delete parent[lastKey];
     }
   }
 
   const handleDeleteTranslation = async (path: string[]) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) return;
     // Видаляємо з baseJson
     const newBaseJson = JSON.parse(JSON.stringify(baseJson));
@@ -180,10 +194,10 @@ export default function ProjectTranslationPage() {
     setBaseJson(newBaseJson);
     // Зберігаємо baseJson у базі даних
     await fetch(`/api/project/${projectId}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ baseJson: newBaseJson }),
     });
@@ -194,14 +208,17 @@ export default function ProjectTranslationPage() {
     // Оновлюємо всі мови
     for (const lang of SUPPORTED_LANGUAGES) {
       const res = await fetch(`/api/project-translations?id=${projectId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           language: lang.code,
-          json: buildFullTranslation(newBaseJson, lang.code === 'en' ? {} : newTranslations)
+          json: buildFullTranslation(
+            newBaseJson,
+            lang.code === "en" ? {} : newTranslations
+          ),
         }),
       });
       if (!res.ok) {
@@ -224,15 +241,19 @@ export default function ProjectTranslationPage() {
   };
 
   const handleAITranslation = async (path: string[], originalText: string) => {
-    if (selectedLanguage === 'en') return;
-    const pathKey = path.join('.');
-    setAiLoadingPaths(prev => [...prev, pathKey]);
+    if (selectedLanguage === "en") return;
+    const pathKey = path.join(".");
+    setAiLoadingPaths((prev) => [...prev, pathKey]);
     try {
-      console.log('[AI TRANSLATE] Request:', { text: originalText, targetLanguage: selectedLanguage, path });
-      const response = await fetch('/api/translate', {
-        method: 'POST',
+      console.log("[AI TRANSLATE] Request:", {
+        text: originalText,
+        targetLanguage: selectedLanguage,
+        path,
+      });
+      const response = await fetch("/api/translate", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           text: originalText,
@@ -241,40 +262,55 @@ export default function ProjectTranslationPage() {
       });
 
       if (!response.ok) {
-        console.error('[AI TRANSLATE] Response not ok:', response.status, response.statusText);
-        throw new Error('Failed to get AI translation');
+        console.error(
+          "[AI TRANSLATE] Response not ok:",
+          response.status,
+          response.statusText
+        );
+        throw new Error("Failed to get AI translation");
       }
 
       const data = await response.json();
-      console.log('[AI TRANSLATE] AI response:', data);
-      setAiSuggestions(prev => [...prev, { path, text: data.translation }]);
+      console.log("[AI TRANSLATE] AI response:", data);
+      setAiSuggestions((prev) => [...prev, { path, text: data.translation }]);
     } catch (error) {
-      console.error('[AI TRANSLATE] Error:', error);
-      setError('Failed to get AI translation');
+      console.error("[AI TRANSLATE] Error:", error);
+      setError("Failed to get AI translation");
     } finally {
-      setAiLoadingPaths(prev => prev.filter(k => k !== pathKey));
+      setAiLoadingPaths((prev) => prev.filter((k) => k !== pathKey));
     }
   };
 
   const handleSaveAISuggestion = (path: string[], text: string) => {
     handleTranslationChange(path, text);
-    setAiSuggestions(prev => prev.filter(s => s.path.join('.') !== path.join('.')));
+    setAiSuggestions((prev) =>
+      prev.filter((s) => s.path.join(".") !== path.join("."))
+    );
   };
 
   const renderTranslationFields = (data: any, currentPath: string[] = []) => {
     return Object.entries(data).map(([key, value]) => {
       const newPath = [...currentPath, key];
-      const translationValue = getTranslationValue(translations, newPath) ?? value;
-      const isUntranslated = selectedLanguage !== 'en' && (getTranslationValue(translations, newPath) === undefined || getTranslationValue(translations, newPath) === '' || getTranslationValue(translations, newPath) === value);
-      const pathKey = newPath.join('.');
+      const translationValue =
+        getTranslationValue(translations, newPath) ?? value;
+      const isUntranslated =
+        selectedLanguage !== "en" &&
+        (getTranslationValue(translations, newPath) === undefined ||
+          getTranslationValue(translations, newPath) === "" ||
+          getTranslationValue(translations, newPath) === value);
+      const pathKey = newPath.join(".");
       const isSaved = savedPaths.has(pathKey);
-      const aiSuggestion = aiSuggestions.find(s => s.path.join('.') === pathKey);
+      const aiSuggestion = aiSuggestions.find(
+        (s) => s.path.join(".") === pathKey
+      );
 
-      if (typeof value === 'object' && value !== null) {
+      if (typeof value === "object" && value !== null) {
         return (
           <div key={key} className="ml-4 border-l-2 border-gray-200 pl-4 my-4">
             <div className="flex items-center mb-2">
-              <h3 className="text-lg font-semibold text-gray-700 bg-gray-50 p-2 rounded-md flex-1">{key}</h3>
+              <h3 className="text-lg font-semibold text-gray-700 bg-gray-50 p-2 rounded-md flex-1">
+                {key}
+              </h3>
               <button
                 onClick={() => handleDeleteClick(newPath)}
                 className="ml-2 h-10 px-3 py-2 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 flex items-center justify-center"
@@ -290,22 +326,32 @@ export default function ProjectTranslationPage() {
       }
 
       return (
-        <div key={key} className="mb-4 bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+        <div
+          key={key}
+          className="mb-4 bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+        >
           <div className="flex items-center mb-2">
-            <label className="block text-sm font-medium flex-1"
-              style={{ color: isUntranslated ? '#dc2626' : isSaved ? '#16a34a' : undefined }}
+            <label
+              className="block text-sm font-medium flex-1"
+              style={{
+                color: isUntranslated
+                  ? "#dc2626"
+                  : isSaved
+                  ? "#16a34a"
+                  : undefined,
+              }}
             >
-              {newPath.join('.')}
+              {newPath.join(".")}
             </label>
             <div className="flex gap-2">
-              {selectedLanguage !== 'en' && (
+              {selectedLanguage !== "en" && (
                 <button
                   onClick={() => handleAITranslation(newPath, value as string)}
                   disabled={aiLoadingPaths.includes(pathKey)}
                   className="h-10 px-3 py-2 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 flex items-center justify-center"
                   title="AI Translation"
                 >
-                  {aiLoadingPaths.includes(pathKey) ? 'Loading...' : 'AI'}
+                  {aiLoadingPaths.includes(pathKey) ? "Loading..." : "AI"}
                 </button>
               )}
               <button
@@ -322,7 +368,13 @@ export default function ProjectTranslationPage() {
             type="text"
             value={translationValue as string}
             onChange={(e) => handleTranslationChange(newPath, e.target.value)}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 placeholder-gray-400 ${isUntranslated ? 'border-red-500' : isSaved ? 'border-green-500' : 'border-gray-300'}`}
+            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 placeholder-gray-400 ${
+              isUntranslated
+                ? "border-red-500"
+                : isSaved
+                ? "border-green-500"
+                : "border-gray-300"
+            }`}
           />
           {aiSuggestion && (
             <div className="mt-2 p-2 bg-blue-50 rounded-md">
@@ -330,7 +382,9 @@ export default function ProjectTranslationPage() {
               <div className="flex items-center gap-2">
                 <div className="flex-1 text-sm">{aiSuggestion.text}</div>
                 <button
-                  onClick={() => handleSaveAISuggestion(newPath, aiSuggestion.text)}
+                  onClick={() =>
+                    handleSaveAISuggestion(newPath, aiSuggestion.text)
+                  }
                   className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
                 >
                   Save
@@ -344,9 +398,11 @@ export default function ProjectTranslationPage() {
   };
 
   const handleDownload = () => {
-    const blob = new Blob([JSON.stringify(translations, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(translations, null, 2)], {
+      type: "application/json",
+    });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${selectedLanguage}.json`;
     document.body.appendChild(a);
@@ -356,16 +412,16 @@ export default function ProjectTranslationPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.replace('/login');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    router.replace("/login");
   };
 
   const handleAddNewTranslation = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) return;
 
-    const pathParts = newTranslation.path.split('.');
+    const pathParts = newTranslation.path.split(".");
     // Глибока копія baseJson
     const newBaseJson = JSON.parse(JSON.stringify(baseJson));
     let current = newBaseJson;
@@ -373,8 +429,13 @@ export default function ProjectTranslationPage() {
 
     // Create nested structure if it doesn't exist, but check for conflicts
     for (let i = 0; i < pathParts.length - 1; i++) {
-      if (typeof current[pathParts[i]] === 'string') {
-        setError(`Cannot add nested key under a string value at '${[...currentPath, pathParts[i]].join('.')}'. Please resolve this conflict first.`);
+      if (typeof current[pathParts[i]] === "string") {
+        setError(
+          `Cannot add nested key under a string value at '${[
+            ...currentPath,
+            pathParts[i],
+          ].join(".")}'. Please resolve this conflict first.`
+        );
         return;
       }
       if (!current[pathParts[i]]) {
@@ -392,10 +453,10 @@ export default function ProjectTranslationPage() {
 
     // Зберігаємо baseJson у базі даних
     await fetch(`/api/project/${projectId}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ baseJson: newBaseJson }),
     });
@@ -403,14 +464,17 @@ export default function ProjectTranslationPage() {
     // Оновлюємо всі мови в базі даних
     for (const lang of SUPPORTED_LANGUAGES) {
       const res = await fetch(`/api/project-translations?id=${projectId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           language: lang.code,
-          json: buildFullTranslation(newBaseJson, lang.code === 'en' ? {} : translations)
+          json: buildFullTranslation(
+            newBaseJson,
+            lang.code === "en" ? {} : translations
+          ),
         }),
       });
       if (!res.ok) {
@@ -420,7 +484,7 @@ export default function ProjectTranslationPage() {
     }
 
     // Clear the form
-    setNewTranslation({ path: '', value: '' });
+    setNewTranslation({ path: "", value: "" });
 
     // Refresh translations
     fetchTranslations(token, selectedLanguage);
@@ -428,17 +492,28 @@ export default function ProjectTranslationPage() {
 
   // SVG класичний trash bin
   const TrashBinIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m2 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7m3 4v6m4-6v6" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      className="w-5 h-5"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m2 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7m3 4v6m4-6v6"
+      />
     </svg>
   );
 
   // Рекурсивно рахує всі ключі-рядки у baseJson
   function countStringKeys(obj: any): number {
-    if (typeof obj !== 'object' || obj === null) return 0;
+    if (typeof obj !== "object" || obj === null) return 0;
     let count = 0;
     for (const key in obj) {
-      if (typeof obj[key] === 'object' && obj[key] !== null) {
+      if (typeof obj[key] === "object" && obj[key] !== null) {
         count += countStringKeys(obj[key]);
       } else {
         count++;
@@ -449,13 +524,17 @@ export default function ProjectTranslationPage() {
 
   // Рекурсивно рахує перекладені ключі для поточної мови
   function countTranslatedKeys(base: any, translation: any): number {
-    if (typeof base !== 'object' || base === null) return 0;
+    if (typeof base !== "object" || base === null) return 0;
     let count = 0;
     for (const key in base) {
-      if (typeof base[key] === 'object' && base[key] !== null) {
+      if (typeof base[key] === "object" && base[key] !== null) {
         count += countTranslatedKeys(base[key], translation?.[key]);
       } else {
-        if (translation?.[key] && translation[key] !== '' && translation[key] !== base[key]) {
+        if (
+          translation?.[key] &&
+          translation[key] !== "" &&
+          translation[key] !== base[key]
+        ) {
           count++;
         }
       }
@@ -464,10 +543,18 @@ export default function ProjectTranslationPage() {
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
   }
   if (error) {
-    return <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600">
+        {error}
+      </div>
+    );
   }
 
   return (
@@ -475,7 +562,7 @@ export default function ProjectTranslationPage() {
       <div className="max-w-6xl mx-auto p-8">
         <div className="flex justify-between items-center mb-6">
           <button
-            onClick={() => router.push('/admin')}
+            onClick={() => router.push("/admin")}
             className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded"
           >
             ← Back to Projects
@@ -488,8 +575,10 @@ export default function ProjectTranslationPage() {
           </button>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Translation Editor</h1>
-          
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">
+            Translation Editor
+          </h1>
+
           {/* Add New Translation Form */}
           <div className="mb-8 p-4 bg-gray-50 rounded-lg">
             <h2 className="text-xl font-semibold mb-4">Add New Translation</h2>
@@ -501,7 +590,12 @@ export default function ProjectTranslationPage() {
                 <input
                   type="text"
                   value={newTranslation.path}
-                  onChange={(e) => setNewTranslation(prev => ({ ...prev, path: e.target.value }))}
+                  onChange={(e) =>
+                    setNewTranslation((prev) => ({
+                      ...prev,
+                      path: e.target.value,
+                    }))
+                  }
                   className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="Enter path"
                 />
@@ -513,7 +607,12 @@ export default function ProjectTranslationPage() {
                 <input
                   type="text"
                   value={newTranslation.value}
-                  onChange={(e) => setNewTranslation(prev => ({ ...prev, value: e.target.value }))}
+                  onChange={(e) =>
+                    setNewTranslation((prev) => ({
+                      ...prev,
+                      value: e.target.value,
+                    }))
+                  }
                   className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="Enter value"
                 />
@@ -538,7 +637,9 @@ export default function ProjectTranslationPage() {
               className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             >
               {SUPPORTED_LANGUAGES.map((lang) => (
-                <option key={lang.code} value={lang.code}>{lang.name}</option>
+                <option key={lang.code} value={lang.code}>
+                  {lang.name}
+                </option>
               ))}
             </select>
             <button
@@ -551,16 +652,21 @@ export default function ProjectTranslationPage() {
         </div>
         <div className="bg-white rounded-xl shadow-lg p-6">
           {/* Прогрес перекладу */}
-          {selectedLanguage !== 'en' && (
+          {selectedLanguage !== "en" &&
             (() => {
               const total = countStringKeys(baseJson);
               const translated = countTranslatedKeys(baseJson, translations);
-              const percent = total > 0 ? Math.round((translated / total) * 100) : 0;
+              const percent =
+                total > 0 ? Math.round((translated / total) * 100) : 0;
               return (
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700">Translation Progress</span>
-                    <span className="text-sm text-gray-500">{translated} / {total} ({percent}%)</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      Translation Progress
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {translated} / {total} ({percent}%)
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div
@@ -570,19 +676,22 @@ export default function ProjectTranslationPage() {
                   </div>
                 </div>
               );
-            })()
-          )}
-          <div className="space-y-4">
-            {renderTranslationFields(baseJson)}
-          </div>
+            })()}
+          <div className="space-y-4">{renderTranslationFields(baseJson)}</div>
         </div>
         {/* Confirmation Dialog */}
         {deleteConfirmation.isOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Deletion</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Confirm Deletion
+              </h3>
               <p className="text-gray-600 mb-6">
-                Are you sure you want to delete the translation at path: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{deleteConfirmation.path.join('.')}</span>?
+                Are you sure you want to delete the translation at path:{" "}
+                <span className="font-mono bg-gray-100 px-2 py-1 rounded">
+                  {deleteConfirmation.path.join(".")}
+                </span>
+                ?
               </p>
               <div className="flex justify-end space-x-4">
                 <button
@@ -592,7 +701,9 @@ export default function ProjectTranslationPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => handleDeleteTranslation(deleteConfirmation.path)}
+                  onClick={() =>
+                    handleDeleteTranslation(deleteConfirmation.path)
+                  }
                   className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   Delete
@@ -604,4 +715,4 @@ export default function ProjectTranslationPage() {
       </div>
     </main>
   );
-} 
+}
